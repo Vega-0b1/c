@@ -1,0 +1,37 @@
+Files:
+  MyCompress.c
+  MyDecompress.c
+  ForkCompress.c
+  PipeCompress.c
+  ParFork.c
+  MiniShell.c
+  MoreShell.c
+  DupShell.c
+  ParThread.c
+  bench.c
+  Prj1README
+
+Compilation:
+  gcc -o mycompress MyCompress.c
+  gcc -o mydecompress MyDecompress.c
+  gcc -o forkcompress ForkCompress.c
+  gcc -o PipeCompress PipeCompress.c
+  gcc -o ParFork ParFork.c
+  gcc -o minishell MiniShell.c
+  gcc -o moreshell MoreShell.c
+  gcc -o dupshell DupShell.c
+  gcc -pthread -o ParThread ParThread.c
+  gcc -o bench bench.c
+
+Usage:
+  ./MyCompress <in> <out>
+  ./MyDecompress <in> <out>
+  ./ForkCompress <in> <out>
+  ./PipeCompress <in> <out>
+  ./ParFork <in> <out> <nprocs>
+  ./MiniShell
+  ./MoreShell
+  ./DupShell
+  ./ParThread <in> <out> <nthreads>
+  ./bench <in> <out_prefix>
+

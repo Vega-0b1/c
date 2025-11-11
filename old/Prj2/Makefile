@@ -1,0 +1,13 @@
+all: prod_cons mh airline
+
+prod_cons: produce_consume.c
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+
+mh: mother_hubbard.c
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+
+airline: airline.c
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+
+clean:
+	rm -f prod_cons mh airline

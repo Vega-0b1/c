@@ -1,0 +1,37 @@
+Script started on 2025-09-26 16:44:07-07:00 [TERM="xterm-256color" TTY="/dev/pts/3" COLUMNS="72" LINES="70"]
+[?2004h]0;jcvega@vega: ~/testing/c/Prj1[01;32mjcvega@vega[00m:[01;34m~/testing/c/Prj1[00m$ [7m./mycompress input.txt out.cmp[27m
+[7m./mydecompress out.cmp restored.txt[27m
+[7mdiff input.txt restored.txt[27m
+[A[A[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./mycompress input.txt out.cmp
+./mydecompress out.cmp restored.txt
+diff input.txt restored.txt
+[A
+[?2004l[?2004h]0;jcvega@vega: ~/testing/c/Prj1[01;32mjcvega@vega[00m:[01;34m~/testing/c/Prj1[00m$ [7m./forkcompress input.txt out.fork[27m
+[7m./pipecompress input.txt out.pipe[27m
+[7m./parfork input.txt out.pf 2[27m
+[7m./parthread input.txt out.pt 2[27m
+[A[A[A[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./forkcompress input.txt out.fork
+./pipecompress input.txt out.pipe
+./parfork input.txt out.pf 2
+./parthread input.txt out.pt 2
+[A
+[?2004l[?2004h]0;jcvega@vega: ~/testing/c/Prj1[01;32mjcvega@vega[00m:[01;34m~/testing/c/Prj1[00m$ [7m./minishell[27m
+[7mexit[27m
+[7m./moreshell[27m
+[7mexit[27m
+[7m./dupshell[27m
+[7mexit[27m
+[A[A[A[A[A[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./minishell
+exit
+./moreshell
+exit
+./dupshell
+exit
+[A
+[?2004lmini$ ./bench biginput.txt result
+exec fail: No such file or directory
+mini$ 
+mini$ exit
+exit
+
+Script done on 2025-09-26 16:44:41-07:00 [COMMAND_EXIT_CODE="0"]
