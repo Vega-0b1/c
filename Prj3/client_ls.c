@@ -8,11 +8,11 @@
 
 #define MAX_LINE 4096
 #define RX_BUFFER 4096
-#define PORT_DEFAULT 777
+#define PORT_DEFAULT 7777
 
 int main(int argc, char *argv[]) {
-  if (argc < 3) {
-    fprintf(stderr, "fdklfjklfj %s", argv[0]);
+  if (argc < 2) {
+    fprintf(stderr, "usage: %s [server_ip] [ls_args..]\n", argv[0]);
     return 1;
   }
 
@@ -37,14 +37,15 @@ int main(int argc, char *argv[]) {
 
   if (connect(socket_fd, sock_addr, srv_len) < 0) {
     perror("connect");
+    close(socket_fd);
     return 1;
   }
 
   char line[MAX_LINE];
   size_t offset = 0;
 
-  if (argc > 3) {
-    for (int i = 3; i < argc; i++) {
+  if (argc >= 3) {
+    for (int i = 2; i < argc; i++) {
       size_t len = strlen(argv[i]);
 
       if ((offset + len + 1) >= sizeof(line)) {

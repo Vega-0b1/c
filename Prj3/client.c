@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #define MAX_SIZE 4096
-#define PORT_DEFAULT 777
+#define PORT_DEFAULT 7777
 int main(int argc, char *argv[]) {
   if (argc != 3) {
     fprintf(stderr, "usage %s \n", argv[0]);
@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
 
   if (inet_pton(AF_INET, argv[1], &srv_addr.sin_addr) != 1) {
     fprintf(stderr, "bad ip\n");
+    close(socket_fd);
     return 1;
   }
 
@@ -34,14 +35,14 @@ int main(int argc, char *argv[]) {
   }
 
   char out[MAX_SIZE];
-  size_t memory_length = strlen(argv[3]);
+  size_t memory_length = strlen(argv[2]);
 
   if (memory_length + 1 > sizeof(out)) {
     fprintf(stderr, "msg too long\n");
     return 1;
   }
 
-  memcpy(out, argv[3], memory_length);
+  memcpy(out, argv[2], memory_length);
   out[memory_length] = '\n';
 
   if (send(socket_fd, out, (int)memory_length + 1, 0) < 0) {
