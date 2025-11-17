@@ -18,6 +18,7 @@ static int read_line(int fd, char *buffer, int max);
 static int split_whitespace(char *line, char *argv_out[], int n);
 
 int main(int argc, char *argv[]) {
+
   if (argc > 1) {
     fprintf(stderr, "no arguments required: %s\n", argv[0]);
     return 1;
@@ -75,7 +76,7 @@ int main(int argc, char *argv[]) {
       int read_attempt = read_line(client_fd, line, MAX_LINE);
 
       if (read_attempt < 0) {
-        dprintf(client_fd, "bad read\n");
+        dprintf(client_fd, "bad read \n");
         close(client_fd);
         _exit(1);
       }
@@ -93,7 +94,7 @@ int main(int argc, char *argv[]) {
       dup2(client_fd, STDERR_FILENO);
 
       execvp("ls", argv_list);
-      perror("execvp error\n");
+      perror("execvp error \n");
       _exit(127);
     } else {
       close(client_fd);
@@ -123,7 +124,6 @@ static int split_whitespace(char *line, char *argv_out[], int n) {
   int count = 0;
   for (char *p = strtok(line, " \t\r\n"); p && count < n;
        p = strtok(NULL, " \t\r\n")) {
-
     argv_out[count++] = p;
   }
 
