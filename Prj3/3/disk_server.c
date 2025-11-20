@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,52 +17,51 @@
 #define MAX_LINE 4096
 #define PORT_DEFAULT 7780
 
-static ssize_t recv_all(int fd, void *buf, size_t n);
-static ssize_t send_all(int fd, const void *buf, size_t n);
-static ssize_t recv_line(int fd, char *buf, size_t cap);
+static ssize_t recv_all(int fd, void *buf, size_t bytes_requested);
+static ssize_t send_all(int fd, const void *buf, size_t bytes_to_send);
+static ssize_t recv_line(int fd, char *buf, size_t buffer_capacity);
 
-static off_t blk_offset(int C, int S, int c, int s);
+static off_t blk_offset(int cylinders, int sectors, int cylinder_request,
+                        int sector_request);
 static void sleep_tracks(int tracks, int delay_us);
-static void serve_client(int client_fd, int C, int S, int delay_us,
-                         int backing_fd);
+static void serve_client(int client_fd, int cylinders, int sectors,
+                         int delay_us, int backing_fd);
 
 int main(int argc, char *argv[]) {
 
-  if (argc < 5 || argc > 6) {
-    fprintf(stderr,
-            "usage: %s <cylinders> <sectors> <track_delay_us> <backing_file> "
-            "[port]\n",
-            argv[0]);
+  if (argc < 4 || argc > 5) {
+    fprintf(
+        stderr,
+        "usage: %s <cylinders> <sectors> <track_delay_us> <backing_file> \n",
+        argv[0]);
     return 1;
   }
 
-  int C = atoi(argv[1]);
-  int S = atoi(argv[2]);
+  int cylinders = atoi(argv[1]);
+  int sectors = atoi(argv[2]);
   int delay_us = atoi(argv[3]);
 
-  if (C <= 0 || S <= 0) {
+  if (cylinders <= 0 || sectors <= 0) {
     fprintf(stderr, "bad geometry\n");
     return 1;
   }
 
-  int port = (argc == 6) ? atoi(argv[5]) : PORT_DEFAULT;
-
   int backing_fd = open(argv[4], O_RDWR | O_CREAT, 0644);
   if (backing_fd < 0) {
-    perror("open backing_file");
+    perror("couldn't open backing_file");
     return 1;
   }
 
-  off_t total_size = (off_t)C * S * BLOCK_SIZE;
+  off_t total_size = (off_t)cylinders * sectors * BLOCK_SIZE;
   if (ftruncate(backing_fd, total_size) < 0) {
-    perror("ftruncate");
+    perror("ftruncate fail");
     close(backing_fd);
     return 1;
   }
 
   int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (listen_fd < 0) {
-    perror("socket");
+    perror("bad socket");
     return 1;
   }
 
@@ -73,7 +71,7 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in srv_addr = {
       .sin_family = AF_INET,
       .sin_addr.s_addr = htonl(INADDR_ANY),
-      .sin_port = htons(port),
+      .sin_port = htons(PORT_DEFAULT),
   };
 
   struct sockaddr *sock_addr = (struct sockaddr *)&srv_addr;
@@ -90,8 +88,9 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  fprintf(stderr, "disk_server: C=%d S=%d delay=%dus file=%s port=%d\n", C, S,
-          delay_us, argv[4], port);
+  fprintf(stderr,
+          "disk_server: Cylinders=%d Sectors=%d Delay=%dus file=%s port=%d\n",
+          cylinders, sectors, delay_us, argv[4], PORT_DEFAULT);
 
   while (1) {
 
@@ -99,39 +98,35 @@ int main(int argc, char *argv[]) {
     if (client_fd < 0) {
       if (errno == EINTR)
         continue;
-      perror("accept");
+      perror("accept failed");
       continue;
     }
 
-    serve_client(client_fd, C, S, delay_us, backing_fd);
+    serve_client(client_fd, cylinders, sectors, delay_us, backing_fd);
   }
 }
 
-/* ============================================================
-   =============== Helper Implementations ======================
-   ============================================================ */
+static ssize_t recv_all(int fd, void *buf, size_t bytes_requested) {
+  size_t bytes_filled = 0;
+  char *buf_pointer = buf;
 
-static ssize_t recv_all(int fd, void *buf, size_t n) {
+  while (bytes_filled < bytes_requested) {
+    ssize_t bytes_received =
+        recv(fd, buf_pointer + bytes_filled, bytes_requested - bytes_filled, 0);
 
-  size_t off = 0;
-  char *p = buf;
-
-  while (off < n) {
-    ssize_t r = recv(fd, p + off, n - off, 0);
-
-    if (r == 0)
+    if (bytes_received == 0)
       return 0;
 
-    if (r < 0) {
+    if (bytes_received < 0) {
       if (errno == EINTR)
         continue;
       return -1;
     }
 
-    off += (size_t)r;
+    bytes_filled += (size_t)bytes_received;
   }
 
-  return (ssize_t)off;
+  return (ssize_t)bytes_filled;
 }
 
 static ssize_t send_all(int fd, const void *buf, size_t n) {
@@ -180,27 +175,21 @@ static ssize_t recv_line(int fd, char *buf, size_t cap) {
   return (ssize_t)n;
 }
 
-static off_t blk_offset(int C, int S, int c, int s) {
-  return ((off_t)c * S + s) * BLOCK_SIZE;
+static off_t blk_offset(int cylinders, int sectors, int cylinder_request,
+                        int sector_request) {
+  return ((off_t)cylinder_request * sectors + sector_request) * BLOCK_SIZE;
 }
 
 static void sleep_tracks(int tracks, int delay_us) {
-
   if (tracks <= 0 || delay_us <= 0)
     return;
 
-  long long total_us = (long long)tracks * delay_us;
-
-  struct timespec ts;
-  ts.tv_sec = total_us / 1000000LL;
-  ts.tv_nsec = (long)((total_us % 1000000LL) * 1000LL);
-
-  while (nanosleep(&ts, &ts) == -1 && errno == EINTR) {
-  }
+  long long total = (long long)tracks * delay_us;
+  usleep((useconds_t)total);
 }
 
-static void serve_client(int client_fd, int C, int S, int delay_us,
-                         int backing_fd) {
+static void serve_client(int client_fd, int cylinders, int sectors,
+                         int delay_us, int backing_fd) {
 
   char line[MAX_LINE];
   int current_cyl = 0;
@@ -232,7 +221,7 @@ static void serve_client(int client_fd, int C, int S, int delay_us,
     if (cmd == 'I') {
 
       char out[64];
-      int m = snprintf(out, sizeof(out), "%d %d\n", C, S);
+      int m = snprintf(out, sizeof(out), "%d %d\n", cylinders, sectors);
 
       if (send_all(client_fd, out, (size_t)m) < 0)
         break;
@@ -243,8 +232,8 @@ static void serve_client(int client_fd, int C, int S, int delay_us,
     /* ----- R: read block ----- */
     if (cmd == 'R') {
 
-      if (sscanf(line, " R %d %d", &c, &s) != 2 || c < 0 || s < 0 || c >= C ||
-          s >= S) {
+      if (sscanf(line, " R %d %d", &c, &s) != 2 || c < 0 || s < 0 ||
+          c >= cylinders || s >= sectors) {
 
         send_all(client_fd, "0\n", 2);
         continue;
@@ -256,7 +245,8 @@ static void serve_client(int client_fd, int C, int S, int delay_us,
 
       unsigned char block[BLOCK_SIZE];
 
-      if (lseek(backing_fd, blk_offset(C, S, c, s), SEEK_SET) < 0) {
+      if (lseek(backing_fd, blk_offset(cylinders, sectors, c, s), SEEK_SET) <
+          0) {
         send_all(client_fd, "0\n", 2);
         continue;
       }
@@ -283,7 +273,7 @@ static void serve_client(int client_fd, int C, int S, int delay_us,
     if (cmd == 'W') {
 
       if (sscanf(line, " W %d %d %d", &c, &s, &l) != 3 || c < 0 || s < 0 ||
-          c >= C || s >= S || l < 0 || l > BLOCK_SIZE) {
+          c >= cylinders || s >= sectors || l < 0 || l > BLOCK_SIZE) {
 
         send_all(client_fd, "0\n", 2);
         continue;
@@ -307,7 +297,8 @@ static void serve_client(int client_fd, int C, int S, int delay_us,
       sleep_tracks(tracks, delay_us);
       current_cyl = c;
 
-      if (lseek(backing_fd, blk_offset(C, S, c, s), SEEK_SET) < 0) {
+      if (lseek(backing_fd, blk_offset(cylinders, sectors, c, s), SEEK_SET) <
+          0) {
         send_all(client_fd, "0\n", 2);
         continue;
       }
