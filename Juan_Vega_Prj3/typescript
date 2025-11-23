@@ -1,0 +1,147 @@
+Script started on 2025-11-22 14:33:07-08:00 [TERM="xterm-ghostty" TTY="/dev/pts/0" COLUMNS="127" LINES="31"]
+]0;jcvega@vega:~/c/Prj3[?2004h[jcvega@vega Prj3]$ make
+[?2004lgcc -pthread p1/reverse_server.c -o p1/reverse_server
+gcc p1/reverse_client.c -o p1/reverse_client
+gcc p2/ls_server.c -o p2/ls_server
+gcc p2/ls_client.c -o p2/ls_client
+gcc p3/disk_server.c -o p3/disk_server
+gcc p3/disk_client.c -o p3/disk_client
+gcc p3/disk_rand.c -o p3/disk_rand
+gcc p4_p5/file_system_server.c -o p4_p5/file_system_server
+gcc p4_p5/file_system_client.c -o p4_p5/file_system_client
+]0;jcvega@vega:~/c/Prj3[?2004h[jcvega@vega Prj3]$ cd p1
+[?2004l]0;jcvega@vega:~/c/Prj3/p1[?2004h[jcvega@vega p1]$ ./reverse_server testfail
+[?2004lno arguments required: ./reverse_server
+]0;jcvega@vega:~/c/Prj3/p1[?2004h[jcvega@vega p1]$ ./reverse_server testfail[K[K[K[K[K[K[K[K
+[?2004lreverse server listening on port 7777
+^C
+]0;jcvega@vega:~/c/Prj3/p1[?2004h[jcvega@vega p1]$ ./reverse_server &
+[?2004l[1] 126685
+]0;jcvega@vega:~/c/Prj3/p1[?2004h[jcvega@vega p1]$ reverse server listening on port 7777
+./reverse_client
+[?2004lusage ./reverse_client <server_ip> <your_string>
+]0;jcvega@vega:~/c/Prj3/p1[?2004h[jcvega@vega p1]$ ./reverse_client 127.0.0.1 abcdefg
+[?2004lgfedcba]0;jcvega@vega:~/c/Prj3/p1[?2004h[jcvega@vega p1]$ jobs
+[?2004l[1]+  Running                    ./reverse_server &
+]0;jcvega@vega:~/c/Prj3/p1[?2004h[jcvega@vega p1]$ fg %1
+[?2004l./reverse_server
+^C^
+]0;jcvega@vega:~/c/Prj3/p1[?2004h[jcvega@vega p1]$ cd ../p2
+[?2004l]0;jcvega@vega:~/c/Prj3/p2[?2004h[jcvega@vega p2]$ clear
+[?2004l[H[2J[3J]0;jcvega@vega:~/c/Prj3/p2[?2004h[jcvega@vega p2]$ ./s[Kls_server &
+[?2004l[1] 126692
+]0;jcvega@vega:~/c/Prj3/p2[?2004h[jcvega@vega p2]$ ./ls_client 
+[?2004lusage: ./ls_client [server_ip] [ls_args..]
+]0;jcvega@vega:~/c/Prj3/p2[?2004h[jcvega@vega p2]$ ./ls_client 127.0.0.1 -l
+[?2004ltotal 44
+-rwxr-xr-x 1 jcvega jcvega 16168 Nov 22 14:33 ls_client
+-rw-r--r-- 1 jcvega jcvega  2492 Nov 22 13:33 ls_client.c
+-rwxr-xr-x 1 jcvega jcvega 16464 Nov 22 14:33 ls_server
+-rw-r--r-- 1 jcvega jcvega  3942 Nov 22 13:31 ls_server.c
+]0;jcvega@vega:~/c/Prj3/p2[?2004h[jcvega@vega p2]$ ./ls_client 127.0.0.1 -l junk
+[?2004lls: cannot access 'junk': No such file or directory
+ls: cannot access ''$'\210': No such file or directory
+]0;jcvega@vega:~/c/Prj3/p2[?2004h[jcvega@vega p2]$ fg %1
+[?2004l./ls_server
+^C
+]0;jcvega@vega:~/c/Prj3/p2[?2004h[jcvega@vega p2]$ cd ..p3[K[K/p3
+[?2004l]0;jcvega@vega:~/c/Prj3/p3[?2004h[jcvega@vega p3]$ ./disk_server
+[?2004lusage: ./disk_server <cylinders> <sectors> <track_delay_us> <backing_file> 
+]0;jcvega@vega:~/c/Prj3/p3[?2004h[jcvega@vega p3]$ ./disk_server 10 10 4[K5 disk.img &
+[?2004l[1] 126703
+]0;jcvega@vega:~/c/Prj3/p3[?2004h[jcvega@vega p3]$ disk_server: Cylinders=10 Sectors=10 Delay=5us file=disk.img port=7780
+./disk_client 127.0.0.1
+[?2004lCommands:
+  I
+  R c s
+  W c s l <enter l bytes>
+> I
+10 10
+> R 0 0
+68 65 6c 6c 6f 20 77 6f 72 6c 64 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+> W 0 0 5
+ABCDE
+1
+> 0
+> R 0 0
+41 42 43 44 45 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+> R 10 0
+0
+> W 0 0 200
+l must be 0..128
+> ^C
+]0;jcvega@vega:~/c/Prj3/p3[?2004h[jcvega@vega p3]$ ./disk_rand 127.0.0.1 0 10
+[?2004lops must be >0
+]0;jcvega@vega:~/c/Prj3/p3[?2004h[jcvega@vega p3]$ ./disk_rand 127.0.0.1 0 10[1P[1@5[1@0[C[C[C0
+[?2004lgeometry: C=10 S=10  (seed=100 ops=50)
+]0;jcvega@vega:~/c/Prj3/p3[?2004h[jcvega@vega p3]$ cd ../p4_p5/
+[?2004l]0;jcvega@vega:~/c/Prj3/p4_p5[?2004h[jcvega@vega p4_p5]$ ./file_system__ser[K[K[K[Kserver
+[?2004lusage: ./file_system_server <disk_server_ip>
+]0;jcvega@vega:~/c/Prj3/p4_p5[?2004h[jcvega@vega p4_p5]$ ./file_system_server 127.0.0.1 &
+[?2004l[2] 126718
+]0;jcvega@vega:~/c/Prj3/p4_p5[?2004h[jcvega@vega p4_p5]$ disk: C=10 S=10 blocks=100
+file_system_server listening on port 7790
+./file_system_server 127.0.0.1 &[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[K[K[Kclear
+
+Script started on 2025-11-22 15:19:27-08:00 [TERM="xterm-ghostty" TTY="/dev/pts/2" COLUMNS="127" LINES="31"]
+]0;jcvega@vega:~/c/Prj3/p4_p5[?2004h[jcvega@vega p4_p5]$ ./file_system_client 127.0.0.1
+[?2004lFilesystem commands:
+  F
+  C name
+  D name
+  L 0|1
+  R name
+  W name len
+  mkdir name
+  cd name|..|/
+  pwd
+  rmdir name
+fs> F
+0
+fs> L 0
+0 1
+//
+fs>  h  C test
+0
+fs> L1  1
+0 2
+D / 0
+F test 0
+fs> W test 4
+enter 4 bytes:
+supa
+0
+fs> fs> test
+2
+fs> R test
+0 4
+supa
+fs> mkdir stuff
+0
+fs> cd stuff
+0
+fs> pwd
+0 /stuff
+fs> rmdir stuff
+1
+fs> L0  0
+0 0
+fs> e ^C
+]0;jcvega@vega:~/c/Prj3/p4_p5[?2004h[jcvega@vega p4_p5]$ exit
+[?2004lexit
+
+Script done on 2025-11-22 15:22:21-08:00 [COMMAND_EXIT_CODE="130"]

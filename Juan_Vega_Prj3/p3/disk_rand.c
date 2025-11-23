@@ -1,15 +1,11 @@
 
 #include <arpa/inet.h>
-#include <bits/types/idtype_t.h>
 #include <errno.h>
 #include <netinet/in.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #define BLOCK_SIZE 128
@@ -18,28 +14,27 @@
 
 static ssize_t send_all(int fd, const void *buf, size_t n);
 static ssize_t recv_all(int fd, void *buf, size_t n);
-static int connect_to_server(const char *ip, int port);
+static int connect_to_server(const char *ip); // open TCP connection
 
 int main(int argc, char *argv[]) {
 
-  if (argc < 4 || argc > 5) {
-    fprintf(stderr, "usage: %s <server_ip> <ops> <seed> [port]\n", argv[0]);
+  if (argc != 4) {
+    fprintf(stderr, "usage: %s <server_ip> <ops> <seed>\n", argv[0]);
     return 1;
   }
 
   const char *server_ip = argv[1];
-  long ops = strtol(argv[2], NULL, 10);
+  long ops = strtol(argv[2], NULL, 10); // number of random ops
   unsigned int seed = (unsigned int)strtoul(argv[3], NULL, 10);
-  int port = (argc == 5) ? atoi(argv[4]) : PORT_DEFAULT;
 
   if (ops <= 0) {
     fprintf(stderr, "ops must be >0\n");
     return 1;
   }
 
-  srand(seed);
+  srand(seed); // seed RNG
 
-  int sock_fd = connect_to_server(server_ip, port);
+  int sock_fd = connect_to_server(server_ip);
   if (sock_fd < 0)
     return 1;
 
@@ -52,7 +47,6 @@ int main(int argc, char *argv[]) {
 
   char geo_buf[64] = {0};
   ssize_t geo_read = recv(sock_fd, geo_buf, sizeof(geo_buf) - 1, 0);
-
   if (geo_read <= 0) {
     perror("recv I");
     close(sock_fd);
@@ -77,12 +71,12 @@ int main(int argc, char *argv[]) {
 
   for (long i = 1; i <= ops; i++) {
 
-    int c = rand() % cylinders;
-    int s = rand() % sectors;
+    int c = rand() % cylinders; // random cylinder
+    int s = rand() % sectors;   // random sector
 
-    /* RANDOMLY READ OR WRITE */
+    /* randomly choose read or write */
     if ((rand() & 1) == 0) {
-
+      /* READ */
       char cmd[MAX_LINE];
       int n = snprintf(cmd, sizeof(cmd), "R %d %d\n", c, s);
 
@@ -108,9 +102,9 @@ int main(int argc, char *argv[]) {
       }
 
     } else {
-
+      /* WRITE */
       for (int j = 0; j < BLOCK_SIZE; j++)
-        write_buf[j] = (unsigned char)rand();
+        write_buf[j] = (unsigned char)rand(); // random payload
 
       char cmd[MAX_LINE];
       int n = snprintf(cmd, sizeof(cmd), "W %d %d %d\n", c, s, BLOCK_SIZE);
@@ -132,7 +126,6 @@ int main(int argc, char *argv[]) {
 
       char ans[2];
       ssize_t r = recv(sock_fd, ans, sizeof(ans), 0);
-
       if (r <= 0) {
         perror("recv W");
         break;
@@ -144,7 +137,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    if ((i % 1000) == 0)
+    if ((i % 1000) == 0) // progress every 1000 ops
       fprintf(stderr, "progress: %ld/%ld\n", i, ops);
   }
 
@@ -152,17 +145,17 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-static int connect_to_server(const char *ip, int port) {
+static int connect_to_server(const char *ip) {
 
   int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
-
   if (sock_fd < 0) {
     perror("socket");
     return -1;
   }
 
-  struct sockaddr_in srv_addr = {
-      .sin_family = AF_INET, .sin_addr.s_addr = 0, .sin_port = htons(port)};
+  struct sockaddr_in srv_addr = {.sin_family = AF_INET,
+                                 .sin_addr.s_addr = 0,
+                                 .sin_port = htons(PORT_DEFAULT)};
 
   if (inet_pton(AF_INET, ip, &srv_addr.sin_addr) != 1) {
     fprintf(stderr, "bad ip\n");
@@ -179,11 +172,10 @@ static int connect_to_server(const char *ip, int port) {
     return -1;
   }
 
-  return sock_fd;
+  return sock_fd; // ready to use
 }
 
 static ssize_t send_all(int fd, const void *buf, size_t n) {
-
   size_t off = 0;
   const char *p = buf;
 
@@ -204,7 +196,6 @@ static ssize_t send_all(int fd, const void *buf, size_t n) {
 }
 
 static ssize_t recv_all(int fd, void *buf, size_t n) {
-
   size_t off = 0;
   char *p = buf;
 
@@ -213,7 +204,7 @@ static ssize_t recv_all(int fd, void *buf, size_t n) {
     ssize_t r = recv(fd, p + off, n - off, 0);
 
     if (r == 0)
-      return 0;
+      return 0; // connection closed
 
     if (r < 0) {
       if (errno == EINTR)

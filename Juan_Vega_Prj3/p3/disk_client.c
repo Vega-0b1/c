@@ -12,22 +12,22 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define BLOCK_SIZE 128
-#define MAX_LINE 4096
-#define PORT_DEFAULT 7780
+#define BLOCK_SIZE 128    // one disk block
+#define MAX_LINE 4096     // max input line
+#define PORT_DEFAULT 7780 // disk server port
 
-static ssize_t send_all(int fd, const void *buf, size_t n);
-static ssize_t recv_all(int fd, void *buf, size_t n);
+static ssize_t send_all(int fd, const void *buf,
+                        size_t n);                    // write whole buffer
+static ssize_t recv_all(int fd, void *buf, size_t n); // read exact n bytes
 
 int main(int argc, char *argv[]) {
 
-  if (argc < 2 || argc > 3) {
-    fprintf(stderr, "usage: %s <server_ip> [port]\n", argv[0]);
+  if (argc != 2) {
+    fprintf(stderr, "usage: %s <server_ip>\n", argv[0]);
     return 1;
   }
 
   const char *server_ip = argv[1];
-  int port = (argc == 3) ? atoi(argv[2]) : PORT_DEFAULT;
 
   int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (sock_fd < 0) {
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in srv_addr = {
       .sin_family = AF_INET,
       .sin_addr.s_addr = 0,
-      .sin_port = htons(port),
+      .sin_port = htons(PORT_DEFAULT),
   };
 
   if (inet_pton(AF_INET, server_ip, &srv_addr.sin_addr) != 1) {
@@ -59,18 +59,17 @@ int main(int argc, char *argv[]) {
   fprintf(stderr, "Commands:\n"
                   "  I\n"
                   "  R c s\n"
-                  "  W c s l <enter l bytes>\n"
-                  "Ctrl+D to quit\n");
+                  "  W c s l <enter l bytes>\n");
 
   char line[MAX_LINE];
 
   while (1) {
 
-    fprintf(stderr, "> ");
+    fprintf(stderr, "> "); // simple prompt
     fflush(stderr);
 
     if (!fgets(line, sizeof(line), stdin))
-      break;
+      break; // EOF on stdin
 
     /* handle write command specially */
     int c, s, l;
@@ -82,16 +81,12 @@ int main(int argc, char *argv[]) {
         continue;
       }
 
-      /* send prefix line without the trailing newline */
-      size_t len = strlen(line);
-      if (len > 0 && line[len - 1] == '\n')
-        len--;
-
-      if (send_all(sock_fd, line, len) < 0)
+      /* send the whole command line, including its newline */
+      if (send_all(sock_fd, line, strlen(line)) < 0)
         break;
 
       unsigned char buf[BLOCK_SIZE] = {0};
-      size_t got = fread(buf, 1, (size_t)l, stdin);
+      size_t got = fread(buf, 1, (size_t)l, stdin); // read data for W
 
       if (got != (size_t)l) {
         fprintf(stderr, "needed %d bytes\n", l);
@@ -106,14 +101,13 @@ int main(int argc, char *argv[]) {
 
       char ans[2];
       ssize_t r = recv(sock_fd, ans, sizeof(ans), 0);
-
       if (r > 0)
-        write(STDOUT_FILENO, ans, (size_t)r);
+        write(STDOUT_FILENO, ans, (size_t)r); // print status
 
       continue;
     }
 
-    /* normal commands */
+    /* normal commands (I, R, etc.) */
     if (send_all(sock_fd, line, strlen(line)) < 0)
       break;
 
@@ -126,7 +120,7 @@ int main(int argc, char *argv[]) {
         break;
 
       if (tag != '1') {
-        write(STDOUT_FILENO, "0\n", 2);
+        write(STDOUT_FILENO, "0\n", 2); // invalid read
         continue;
       }
 
@@ -135,6 +129,7 @@ int main(int argc, char *argv[]) {
       if (recv_all(sock_fd, block, BLOCK_SIZE) <= 0)
         break;
 
+      // hex dump of the 128-byte block
       for (int i = 0; i < BLOCK_SIZE; i++) {
         printf("%02x%s", block[i], (i % 16 == 15) ? "\n" : " ");
       }
@@ -143,6 +138,7 @@ int main(int argc, char *argv[]) {
 
     } else {
 
+      // for I and any other small replies
       char buf[256];
       ssize_t r = recv(sock_fd, buf, sizeof(buf), 0);
 
@@ -163,11 +159,10 @@ static ssize_t send_all(int fd, const void *buf, size_t n) {
   const char *p = buf;
 
   while (off < n) {
-
     ssize_t r = send(fd, p + off, n - off, 0);
 
     if (r <= 0) {
-      if (r < 0 && errno == EINTR)
+      if (r < 0 && errno == EINTR) // retry on signal
         continue;
       return -1;
     }
@@ -188,7 +183,7 @@ static ssize_t recv_all(int fd, void *buf, size_t n) {
     ssize_t r = recv(fd, p + off, n - off, 0);
 
     if (r == 0)
-      return 0;
+      return 0; // connection closed
 
     if (r < 0) {
       if (errno == EINTR)
